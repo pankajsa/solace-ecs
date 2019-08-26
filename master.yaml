@@ -1,3 +1,4 @@
+AWSTemplateFormatVersion: 2010-09-09
 Description: >
 
   This template deploys a VPC, with a pair of public and private subnets spread 
@@ -11,90 +12,96 @@ Description: >
   Finally, it deploys a pair of example ECS services from containers published in 
   Amazon EC2 Container Registry (Amazon ECR).
 
-  Last Modified: 22nd September 2016
-  Author: Paul Maddox <pmaddox@amazon.com>
+  Last Modified: 26th August 2019
+  Author: Pankaj Arora <pankaj.arora@solace.com>
 
 Resources:
-  VPC:
+  # VPC:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://s3-ap-southeast-1.amazonaws.com/pankaj.setup.solace.com/vpc.yaml
+  #     Parameters:
+  #       EnvironmentName: !Join
+  #                         - '-'
+  #                         - - 'ECSOnePlatform'
+  #                           - !Ref AWS::StackName
+  #       VpcCIDR: 10.0.0.0/16
+  #       PublicSubnet1CIDR: 10.0.1.0/24
+  #       PublicSubnet2CIDR: 10.0.2.0/24
+  #       PrivateSubnet1CIDR: 10.0.10.0/24
+  #       PrivateSubnet2CIDR: 10.0.20.0/24
+
+  # SecurityGroups:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://s3-ap-southeast-1.amazonaws.com/pankaj.setup.solace.com/security-groups.yaml
+  #     Parameters:
+  #       EnvironmentName: !Join
+  #                         - '-'
+  #                         - - 'ECSOnePlatform'
+  #                           - !Ref AWS::StackName
+  #       VPC: !GetAtt VPC.Outputs.VPC
+
+  # ALB:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://s3-ap-southeast-1.amazonaws.com/pankaj.setup.solace.com/elb.yaml
+  #     Parameters:
+  #       # EnvironmentName: !Join
+  #       #                   - '-'
+  #       #                   - - 'ECSOnePlatform'
+  #       #                     - !Ref AWS::StackName
+  #       # VPC: !GetAtt VPC.Outputs.VPC
+  #       # Subnets: !GetAtt VPC.Outputs.PublicSubnets
+  #       EnvironmentName: ECSOnePlatform-dev1
+  #       VPC: vpc-07ac788d2f718599f
+  #       Subnets: subnet-0e6467d0daeffcda2
+
+
+  # ECS:
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: https://s3-ap-southeast-1.amazonaws.com/pankaj.setup.solace.com/ecs-cluster.yaml
+  #     Parameters:
+  #       EnvironmentName: !Join
+  #                         - '-'
+  #                         - - 'ECSOnePlatform'
+  #                           - !Ref AWS::StackName
+  #       VPC: vpc-07ac788d2f718599f
+  #       Subnet: subnet-0e6467d0daeffcda2
+  #       InstanceType: t2.medium
+  #       KeyName: parora_ap_se
+  #       IamInstanceProfile: Pankaj-EC2-FullAccess
+  #       ExternalDiskId: vol-09dd6dd707bd2e6b8
+  #       TargetGroupARN: "arn:aws:elasticloadbalancing:ap-southeast-1:888210802580:targetgroup/ECSOnePlatform-dev1-55555/c8b851fb0fd649e0"
+
+
+  ECSTask:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/infrastructure/vpc.yaml
+      TemplateURL: https://s3-ap-southeast-1.amazonaws.com/pankaj.setup.solace.com/ecs-task.yaml
       Parameters:
-        EnvironmentName: !Ref AWS::StackName
-        VpcCIDR: 10.180.0.0/16
-        PublicSubnet1CIDR: 10.180.8.0/21
-        PublicSubnet2CIDR: 10.180.16.0/21
-        PrivateSubnet1CIDR: 10.180.24.0/21
-        PrivateSubnet2CIDR: 10.180.32.0/21
+        Image: 888210802580.dkr.ecr.ap-southeast-1.amazonaws.com/oneplatform:solace
 
-  SecurityGroups:
+  ECSService:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/infrastructure/security-groups.yaml
+      TemplateURL: https://s3-ap-southeast-1.amazonaws.com/pankaj.setup.solace.com/ecs-service.yaml
       Parameters:
-        EnvironmentName: !Ref AWS::StackName
-        VPC: !GetAtt VPC.Outputs.VPC
+        cluster: ECSOnePlatform-dev4
+        taskdefinition: !GetAtt ECSTask.Outputs.Task
 
-  ALB:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/infrastructure/load-balancers.yaml
-      Parameters:
-        EnvironmentName: !Ref AWS::StackName
-        VPC: !GetAtt VPC.Outputs.VPC
-        Subnets: !GetAtt VPC.Outputs.PublicSubnets
-        SecurityGroup: !GetAtt SecurityGroups.Outputs.LoadBalancerSecurityGroup
 
-  ECS:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/infrastructure/ecs-cluster.yaml
-      Parameters:
-        EnvironmentName: !Ref AWS::StackName
-        InstanceType: t2.large
-        ClusterSize: 4
-        VPC: !GetAtt VPC.Outputs.VPC
-        SecurityGroup: !GetAtt SecurityGroups.Outputs.ECSHostSecurityGroup
-        Subnets: !GetAtt VPC.Outputs.PrivateSubnets
+        #   LifecycleHook:
+#     Type: AWS::CloudFormation::Stack
+#     Properties:
+#       TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/infrastructure/lifecyclehook.yaml
+#       Parameters:
+#         Cluster: !GetAtt ECS.Outputs.Cluster
+#         ECSAutoScalingGroupName: !GetAtt ECS.Outputs.ECSAutoScalingGroupName
 
-  ProductService:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/services/product-service/service.yaml
-      Parameters:
-        VPC: !GetAtt VPC.Outputs.VPC
-        Cluster: !GetAtt ECS.Outputs.Cluster
-        DesiredCount: 2
-        Listener: !GetAtt ALB.Outputs.Listener
-        Path: /products
+# Outputs:
+#   ProductServiceUrl:
+#     Description: The URL endpoint for the product service
+#     Value: !Join ["/", [!GetAtt ALB.Outputs.LoadBalancerUrl, "products"]]
 
-  WebsiteService:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/services/website-service/service.yaml
-      Parameters:
-        VPC: !GetAtt VPC.Outputs.VPC
-        Cluster: !GetAtt ECS.Outputs.Cluster
-        DesiredCount: 2
-        ProductServiceUrl:
-          !Join ["/", [!GetAtt ALB.Outputs.LoadBalancerUrl, "products"]]
-        Listener: !GetAtt ALB.Outputs.Listener
-        Path: /
-        ECSServiceAutoScalingRoleARN: !GetAtt ECS.Outputs.ECSServiceAutoScalingRole
-
-  LifecycleHook:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: https://s3.amazonaws.com/ecs-refarch-cloudformation/infrastructure/lifecyclehook.yaml
-      Parameters:
-        Cluster: !GetAtt ECS.Outputs.Cluster
-        ECSAutoScalingGroupName: !GetAtt ECS.Outputs.ECSAutoScalingGroupName
-
-Outputs:
-  ProductServiceUrl:
-    Description: The URL endpoint for the product service
-    Value: !Join ["/", [!GetAtt ALB.Outputs.LoadBalancerUrl, "products"]]
-
-  WebsiteServiceUrl:
-    Description: The URL endpoint for the website service
-    Value: !Join ["", [!GetAtt ALB.Outputs.LoadBalancerUrl, "/"]]

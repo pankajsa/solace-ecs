@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+  This template deploys the ELB.
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+  VPC:
+    Description: VPC
+    Type: AWS::EC2::VPC::Id
+  Subnets:
+    Description: Subnets of the NLB
+    Type: List<AWS::EC2::Subnet::Id>
+  Port:
+    Description: Default port for the NLB
+    Type: String
+    Default: 55555
+
+Resources:
+  SolaceELB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: ipv4
+      LoadBalancerAttributes: 
+        - 
+          Key: load_balancing.cross_zone.enabled
+          Value: false
+      Name: !Ref EnvironmentName
+      Scheme: internet-facing
+      Subnets: !Ref Subnets
+      Type: network
+
+  SolaceTargetGroup55555:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      Name: !Join
+              - '-'
+              - - !Ref EnvironmentName
+                - !Ref Port
+      Port: !Ref Port
+      Protocol: TCP
+      TargetType: instance
+      VpcId: !Ref VPC
+
+  SolaceListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties: 
+      LoadBalancerArn: !Ref SolaceELB
+      DefaultActions: 
+        - 
+          Type: forward
+          TargetGroupArn: !Ref SolaceTargetGroup55555
+      Port: !Ref Port
+      Protocol: TCP
+Outputs:
+  SolaceTargetGroup55555:
+    Description: A reference to the created SolaceTargetGroup55555
+    Value: !Ref SolaceTargetGroup55555
+
+

@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+
+  Create the ECS Service
+
+Parameters:
+  cluster:
+    Description: Image
+    Type: String
+  taskdefinition:
+    Description: tassk
+    Type: String
+
+Resources:
+ TaskDefinition: 
+    Type: AWS::ECS::Service
+    Properties: 
+      TaskDefinition: !Ref taskdefinition
+      Cluster: !Ref cluster
+      ServiceName: solace
+      LaunchType: EC2
+      DeploymentConfiguration:
+        MaximumPercent: 100
+        MinimumHealthyPercent: 0
+      DesiredCount: 1
+      SchedulingStrategy: REPLICA
+Outputs:
+  Task:
+    Description: A reference to the created task
+    Value: !Ref TaskDefinition

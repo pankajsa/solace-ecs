@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >
+
+  Create the ECS Task
+
+Parameters:
+  Image:
+    Description: Image
+    Type: String
+
+Resources:
+ TaskDefinition: 
+    Type: AWS::ECS::TaskDefinition
+    Properties: 
+      RequiresCompatibilities:
+        - "EC2"
+      ContainerDefinitions: 
+        - 
+          Name: "solace-pubsub"
+          Cpu: 2048
+          MemoryReservation: 300
+          Image: !Ref Image
+          Essential: true
+          LinuxParameters:
+            SharedMemorySize: 2048
+          MountPoints: 
+            - 
+              SourceVolume: "jail"
+              ContainerPath: "/usr/sw/jail"
+            - 
+              SourceVolume: "diags"
+              ContainerPath: "/var/lib/solace/diags"
+            - 
+              SourceVolume: "spool"
+              ContainerPath: "/usr/sw/internalSpool"
+            - 
+              SourceVolume: "adbBackup"
+              ContainerPath: "/usr/sw/adb"
+            - 
+              SourceVolume: "adb"
+              ContainerPath: "/usr/sw/internalSpool/softAdb"
+            - 
+              SourceVolume: "var"
+              ContainerPath: "/usr/sw/var"
+      ExecutionRoleArn: ecsTaskExecutionRole
+      TaskRoleArn: ecsTaskExecutionRole
+      NetworkMode: host
+      Volumes: 
+        - 
+          Host: 
+            SourcePath: "/data/jail"
+          Name: "jail"
+        - 
+          Host: 
+            SourcePath: "/data/diags"
+          Name: "diags"          
+        - 
+          Host: 
+            SourcePath: "/data/spool"
+          Name: "spool"
+        - 
+          Host: 
+            SourcePath: "/data/adbBackup"
+          Name: "adbBackup"
+        - 
+          Host: 
+            SourcePath: "/data/adb"
+          Name: "adb"
+        - 
+          Host: 
+            SourcePath: "/data/var"
+          Name: "var"
+Outputs:
+  Task:
+    Description: A reference to the created task
+    Value: !Ref TaskDefinition
